@@ -301,9 +301,15 @@
                 allData = allData.map(item => {
                     const { address, isLandOnly } = reconstructAddress(item);
                     
-                    // 金額處理
-                    let saleamt = item.saleamt || item.sumprice || item.summinprc || 0;
-                    if (item.saleamtstr) {
+                    // 金額處理：優先使用總拍定價格 (sumprice)
+                    let saleamt = item.sumprice || item.saleamt || item.summinprc || 0;
+                    
+                    // 如果有字串版本的總價，優先從字串解析以確保精準
+                    if (item.sumpricestr) {
+                        const m = item.sumpricestr.replace(/,/g, '');
+                        const val = parseFloat(m);
+                        if (!isNaN(val)) saleamt = val;
+                    } else if (item.saleamtstr) {
                         const m = item.saleamtstr.match(/新台幣\s*([\d,]+)\s*元/);
                         if (m) saleamt = parseFloat(m[1].replace(/,/g, ''));
                     }
