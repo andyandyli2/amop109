@@ -1,0 +1,8 @@
+# Temporary and generated files
+*.bat
+*.py
+*.php
+out.txt
+# If they want to keep the source local, we only push HTML/JS and JSON
+# But github pages needs index.html.
+# We'll push index.html and history/

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>法拍歷史資料庫 - 雲端版</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 2rem;
+            letter-spacing: -0.025em;
+            background: linear-gradient(to right, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .filter-header {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .filter-item { display: flex; flex-direction: column; gap: 0.5rem; }
+        .filter-item label { font-size: 0.875rem; font-weight: 600; color: var(--text-muted); }
+        
+        select, input {
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .table-wrapper {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            animation: fadeIn 0.7s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .scroll-container { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background: #f1f5f9;
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th:hover { color: var(--primary); background: #e2e8f0; }
+
+        td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(37, 99, 235, 0.03); }
+
+        .address-cell { white-space: normal; min-width: 250px; line-height: 1.5; }
+        
+        .price { font-weight: 600; color: #10b981; }
+        .date { font-family: monospace; color: var(--text-muted); }
+        
+        .btn-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: #eff6ff;
+            color: var(--primary);
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-link:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .badge-land {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .filter-header { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 法拍歷史資料庫</h1>
+        
+        <div class="filter-header">
+            <div class="filter-item">
+                <label for="cityFilter">縣市</label>
+                <select id="cityFilter"><option value="all">全部縣市</option></select>
+            </div>
+            <div class="filter-item">
+                <label for="townFilter">鄉鎮市區</label>
+                <select id="townFilter"><option value="all">全部區域</option></select>
+            </div>
+            <div class="filter-item">
+                <label>拍定價格 (萬)</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="number" id="priceMin" placeholder="最低" style="width: 100%;">
+                    <span>~</span>
+                    <input type="number" id="priceMax" placeholder="最高" style="width: 100%;">
+                </div>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <div class="scroll-container">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(0)">拍賣日期 <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(1)">區域 <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(2)">地址 <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(3)">坪數 <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(4)">拍定價格 <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(5)">單坪價錢 <span class="sort-icon"></span></th>
+                            <th>連結</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataBody">
+                        <tr><td colspan="7" class="loading">正在載入歷史資料...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+        let currentSort = { col: 0, asc: false };
+
+        // 核心邏輯：地址重建 (對齊 PHP 版本)
+        function reconstructAddress(item) {
+            const hsimun = (item.hsimun || '').trim();
+            const ctmd = (item.ctmd || '').trim();
+            const budadd = (item.budadd || '').trim();
+            const secstr = (item.secstr || '').trim();
+            const sec = (item.sec || '').trim();
+            const subsec = (item.subsec || '').trim();
+            const landno = (item.landno || '').trim();
+
+            let content = budadd;
+            let isLandOnly = false;
+
+            if (content === '') {
+                isLandOnly = true;
+                if (secstr !== '') {
+                    content = secstr;
+                } else if (sec !== '') {
+                    content = sec + (subsec ? ' ' + subsec : '') + (landno ? ' ' + landno + '號' : '');
+                }
+            }
+
+            const prefix = hsimun + ctmd;
+            let displayAdd = content;
+
+            if (prefix !== '' && content !== '') {
+                const cleanPrefix = prefix.replace(/\s/g, '');
+                const cleanContent = content.replace(/\s/g, '');
+                if (!cleanContent.includes(cleanPrefix)) {
+                    displayAdd = hsimun + ctmd + ' ' + content;
+                }
+            } else if (prefix !== '' && content === '') {
+                displayAdd = prefix;
+            }
+
+            if (landno !== '' && budadd !== '') {
+                const cleanAdd = displayAdd.replace(/[()\s　]/g, '');
+                const cleanLand = landno.replace(/[()\s　]/g, '');
+                if (!cleanAdd.includes(cleanLand)) {
+                    displayAdd += ` (地號: ${landno})`;
+                }
+            }
+
+            return { address: displayAdd, isLandOnly };
+        }
+
+        function formatYMD(dateStr) {
+            if (!dateStr) return '';
+            const s = dateStr.replace(/-/g, '/');
+            const parts = s.split('/');
+            if (parts.length >= 3) {
+                let y = parts[0];
+                if (y.length === 3) y = (parseInt(y) + 1911).toString().slice(2);
+                else if (y.length === 4) y = y.slice(2);
+                return `${y}/${parts[1].padStart(2, '0')}/${parts[2].padStart(2, '0')}`;
+            }
+            return dateStr;
+        }
+
+        async function init() {
+            try {
+                const response = await fetch('history/data.json');
+                const json = await response.json();
+                allData = json.data || [];
+                
+                // 預處理資料
+                allData = allData.map(item => {
+                    const { address, isLandOnly } = reconstructAddress(item);
+                    
+                    // 金額處理
+                    let saleamt = item.saleamt || item.sumprice || item.summinprc || 0;
+                    if (item.saleamtstr) {
+                        const m = item.saleamtstr.match(/新台幣\s*([\d,]+)\s*元/);
+                        if (m) saleamt = parseFloat(m[1].replace(/,/g, ''));
+                    }
+
+                    // 坪數處理
+                    let areaVal = 0;
+                    const areaMatch = (item.area3str || '').match(/^([0-9.]+)\s*坪/);
+                    if (areaMatch) areaVal = parseFloat(areaMatch[1]);
+                    else if (item.area3) areaVal = item.area3 * 0.3025;
+
+                    return {
+                        ...item,
+                        displayAdd: address,
+                        isLandOnly,
+                        formattedDate: formatYMD(item.saledate),
+                        saleAmtVal: saleamt,
+                        areaVal: areaVal,
+                        unitPrice: areaVal > 0 ? Math.round(saleamt / areaVal) : 0
+                    };
+                });
+
+                setupFilters();
+                applyFilters();
+                
+            } catch (err) {
+                console.error(err);
+                document.getElementById('dataBody').innerHTML = '<tr><td colspan="7" class="loading">載入失敗，請確認資料檔案路徑。</td></tr>';
+            }
+        }
+
+        function setupFilters() {
+            const cities = [...new Set(allData.map(d => d.hsimun))].filter(Boolean).sort();
+            const citySelect = document.getElementById('cityFilter');
+            cities.forEach(c => citySelect.add(new Option(c, c)));
+
+            citySelect.onchange = () => {
+                const towns = [...new Set(allData.filter(d => d.hsimun === citySelect.value).map(d => d.ctmd))].filter(Boolean).sort();
+                const townSelect = document.getElementById('townFilter');
+                townSelect.innerHTML = '<option value="all">全部區域</option>';
+                towns.forEach(t => townSelect.add(new Option(t, t)));
+                applyFilters();
+            };
+
+            document.getElementById('townFilter').onchange = applyFilters;
+            document.getElementById('priceMin').oninput = applyFilters;
+            document.getElementById('priceMax').oninput = applyFilters;
+        }
+
+        function applyFilters() {
+            const city = document.getElementById('cityFilter').value;
+            const town = document.getElementById('townFilter').value;
+            const min = parseFloat(document.getElementById('priceMin').value) * 10000 || 0;
+            const max = parseFloat(document.getElementById('priceMax').value) * 10000 || Infinity;
+
+            filteredData = allData.filter(d => {
+                if (city !== 'all' && d.hsimun !== city) return false;
+                if (town !== 'all' && d.ctmd !== town) return false;
+                if (d.saleAmtVal < min || d.saleAmtVal > max) return false;
+                return true;
+            });
+
+            render();
+        }
+
+        function render() {
+            // 排序
+            filteredData.sort((a, b) => {
+                let v1, v2;
+                switch(currentSort.col) {
+                    case 0: v1 = a.saledate; v2 = b.saledate; break;
+                    case 1: v1 = (a.hsimun + a.ctmd); v2 = (b.hsimun + b.ctmd); break;
+                    case 3: v1 = a.areaVal; v2 = b.areaVal; break;
+                    case 4: v1 = a.saleAmtVal; v2 = b.saleAmtVal; break;
+                    case 5: v1 = a.unitPrice; v2 = b.unitPrice; break;
+                    default: v1 = a.displayAdd; v2 = b.displayAdd;
+                }
+                const res = v1 < v2 ? -1 : (v1 > v2 ? 1 : 0);
+                return currentSort.asc ? res : -res;
+            });
+
+            const tbody = document.getElementById('dataBody');
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">沒有符合條件的資料。</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredData.map(d => `
+                <tr>
+                    <td class="date">${d.formattedDate}</td>
+                    <td>${d.hsimun}${d.ctmd}</td>
+                    <td class="address-cell">
+                        ${d.displayAdd}
+                        ${d.isLandOnly ? '<span class="badge-land">純土地</span>' : ''}
+                    </td>
+                    <td>${d.areaVal.toFixed(2)} 坪</td>
+                    <td class="price">${d.saleAmtVal.toLocaleString()}</td>
+                    <td>${d.unitPrice > 0 ? d.unitPrice.toLocaleString() : '-'}</td>
+                    <td>
+                        <a href="https://aomp109.judicial.gov.tw/judbp/wkw/WHD1A02/DO_VIEWPDF.htm?filenm=${d.filenm}" target="_blank" class="btn-link">查看PDF</a>
+                    </td>
+                </tr>
+            `).join('');
+
+            // 更新排序圖標
+            document.querySelectorAll('.sort-icon').forEach((span, i) => {
+                if (i === currentSort.col) span.textContent = currentSort.asc ? '▲' : '▼';
+                else span.textContent = '';
+            });
+        }
+
+        function sortTable(i) {
+            if (currentSort.col === i) currentSort.asc = !currentSort.asc;
+            else { currentSort.col = i; currentSort.asc = true; }
+            render();
+        }
+
+        init();
+    </script>
+</body>
+</html>
