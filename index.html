@@ -203,6 +203,10 @@
                     <input type="number" id="priceMax" placeholder="最高" style="width: 100%;">
                 </div>
             </div>
+            <div class="filter-item">
+                <label for="keywordSearch">關鍵字搜尋</label>
+                <input type="text" id="keywordSearch" placeholder="搜尋案號、地址、地段..." style="width: 100%;">
+            </div>
             <div class="filter-item" style="justify-content: flex-end; text-align: right;">
                 <label>統計資料</label>
                 <div id="statsInfo" style="font-weight: 700; color: var(--primary); font-size: 1.1rem;">
@@ -216,6 +220,7 @@
                 <table id="dataTable">
                     <thead>
                         <tr>
+                            <th onclick="sortTable(100)">序號</th>
                             <th onclick="sortTable(0)">拍賣日期 <span class="sort-icon"></span></th>
                             <th onclick="sortTable(1)">區域 <span class="sort-icon"></span></th>
                             <th onclick="sortTable(2)">地址 <span class="sort-icon"></span></th>
@@ -395,6 +400,7 @@
             document.getElementById('townFilter').onchange = applyFilters;
             document.getElementById('priceMin').oninput = applyFilters;
             document.getElementById('priceMax').oninput = applyFilters;
+            document.getElementById('keywordSearch').oninput = applyFilters;
         }
 
         function applyFilters() {
@@ -402,11 +408,18 @@
             const town = document.getElementById('townFilter').value;
             const min = parseFloat(document.getElementById('priceMin').value) * 10000 || 0;
             const max = parseFloat(document.getElementById('priceMax').value) * 10000 || Infinity;
+            const keyword = document.getElementById('keywordSearch').value.trim().toLowerCase();
 
             filteredData = allData.filter(d => {
                 if (city !== 'all' && d.hsimun !== city) return false;
                 if (town !== 'all' && d.ctmd !== town) return false;
                 if (d.saleAmtVal < min || d.saleAmtVal > max) return false;
+                
+                if (keyword !== '') {
+                    const searchStr = (d.displayAdd + d.crm + d.crmno + d.secstr + d.hsimun + d.ctmd).toLowerCase();
+                    if (!searchStr.includes(keyword)) return false;
+                }
+                
                 return true;
             });
 
@@ -435,19 +448,17 @@
                 return;
             }
 
-            tbody.innerHTML = filteredData.map(d => `
+            tbody.innerHTML = filteredData.map((d, index) => `
                 <tr>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">${index + 1}</td>
                     <td class="date">${d.formattedDate}</td>
                     <td>${d.hsimun}${d.ctmd}</td>
                     <td class="address-cell">
                         ${d.displayAdd}
                         ${d.isLandOnly ? '<span class="badge-land">純土地</span>' : ''}
                     </td>
-                    <td>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">土: ${d.landArea.toFixed(2)} 坪</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">建: ${d.buildingArea.toFixed(2)} 坪</div>
-                        <div style="font-weight: 600; margin-top: 0.2rem;">共 ${d.areaVal.toFixed(2)} 坪</div>
-                    </td>
+                    <td>${d.landArea.toFixed(2)} 坪</td>
+                    <td>${d.buildingArea.toFixed(2)} 坪</td>
                     <td class="price">${d.saleAmtVal.toLocaleString()}</td>
                     <td>${d.unitPrice > 0 ? d.unitPrice.toLocaleString() : '-'}</td>
                     <td>
