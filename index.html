@@ -219,7 +219,8 @@
                             <th onclick="sortTable(0)">拍賣日期 <span class="sort-icon"></span></th>
                             <th onclick="sortTable(1)">區域 <span class="sort-icon"></span></th>
                             <th onclick="sortTable(2)">地址 <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(3)">坪數 <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(3)">土地坪數 <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(35)">建物坪數 <span class="sort-icon"></span></th>
                             <th onclick="sortTable(4)">拍定價格 <span class="sort-icon"></span></th>
                             <th onclick="sortTable(5)">單坪價錢 <span class="sort-icon"></span></th>
                             <th>連結</th>
@@ -333,13 +334,17 @@
                             items: [item],
                             allAddresses: new Set([item.address]),
                             totalArea: item.areaVal,
-                            maxSaleAmt: item.saleamt, // 通常案號內所有項目的總價 (sumprice) 應該是一樣的
+                            landArea: item.isLandOnly ? item.areaVal : 0,
+                            buildingArea: !item.isLandOnly ? item.areaVal : 0,
+                            maxSaleAmt: item.saleamt, 
                             hasBuilding: !item.isLandOnly
                         };
                     } else {
                         groups[caseKey].items.push(item);
                         groups[caseKey].allAddresses.add(item.address);
                         groups[caseKey].totalArea += item.areaVal;
+                        if (item.isLandOnly) groups[caseKey].landArea += item.areaVal;
+                        else groups[caseKey].buildingArea += item.areaVal;
                         groups[caseKey].maxSaleAmt = Math.max(groups[caseKey].maxSaleAmt, item.saleamt);
                         if (!item.isLandOnly) groups[caseKey].hasBuilding = true;
                     }
@@ -359,6 +364,8 @@
                         formattedDate: formatYMD(g.saledate),
                         saleAmtVal: g.maxSaleAmt,
                         areaVal: g.totalArea,
+                        landArea: g.landArea,
+                        buildingArea: g.buildingArea,
                         unitPrice: g.totalArea > 0 ? Math.round(g.maxSaleAmt / g.totalArea) : 0
                     };
                 });
@@ -436,7 +443,11 @@
                         ${d.displayAdd}
                         ${d.isLandOnly ? '<span class="badge-land">純土地</span>' : ''}
                     </td>
-                    <td>${d.areaVal.toFixed(2)} 坪</td>
+                    <td>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">土: ${d.landArea.toFixed(2)} 坪</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">建: ${d.buildingArea.toFixed(2)} 坪</div>
+                        <div style="font-weight: 600; margin-top: 0.2rem;">共 ${d.areaVal.toFixed(2)} 坪</div>
+                    </td>
                     <td class="price">${d.saleAmtVal.toLocaleString()}</td>
                     <td>${d.unitPrice > 0 ? d.unitPrice.toLocaleString() : '-'}</td>
                     <td>
@@ -444,6 +455,9 @@
                     </td>
                 </tr>
             `).join('');
+
+            // 更新統計資訊 (修正顯示錯誤)
+            document.getElementById('statsInfo').textContent = `共 ${filteredData.length} 筆成交案號`;
 
             // 更新排序圖標
             document.querySelectorAll('.sort-icon').forEach((span, i) => {
