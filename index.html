@@ -364,7 +364,9 @@
 
         async function init() {
             try {
-                const response = await fetch('history/data.json');
+                // 改為直接從 GitHub 讀取最新雲端資料（加上時間戳防止快取），確保本機無須同步即可看見最新資料
+                const url = 'https://raw.githubusercontent.com/andyandyli2/amop109/main/history/data.json?t=' + new Date().getTime();
+                const response = await fetch(url);
                 const json = await response.json();
                 allData = json.data || [];
                 
